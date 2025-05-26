@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Issue #{{ issue_number }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, {{ brand_color }}, {{ brand_color }}dd);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header .issue-info {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header .stats {
+            margin-top: 15px;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .intro {
+            font-size: 16px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid {{ brand_color }};
+            border-radius: 0 4px 4px 0;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: {{ brand_color }};
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .section-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .article {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            position: relative;
+            transition: box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+
+        .article:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .article-link {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10; /* This is the critical fix */
+            text-indent: -9999px;
+        }
+
+        .article-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .article-meta {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 12px;
+        }
+
+        .article-summary {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .editorial-note {
+            font-style: italic;
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 12px;
+        }
+
+        .article-tags {
+            margin-top: 10px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: {{ brand_color }}22;
+            color: {{ brand_color }};
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .outro {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            font-size: 15px;
+        }
+
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .social-links {
+            margin: 20px 0;
+        }
+
+        .social-links a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .social-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .footer-links {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #34495e;
+        }
+
+        .footer-links a {
+            color: #bdc3c7;
+            text-decoration: none;
+            margin: 0 15px;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                box-shadow: none;
+            }
+
+            .header, .content, .footer {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .section-title {
+                font-size: 20px;
+            }
+
+            .article {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            {% if brand_logo %}
+            <img src="{{ brand_logo }}" alt="{{ title }}" style="max-height: 40px; margin-bottom: 10px;">
+            {% endif %}
+            <h1>{{ title }}</h1>
+            <div class="issue-info">
+                Issue #{{ issue_number }} • {{ date }} • {{ time }}
+            </div>
+            <div class="stats">
+                {{ article_count }} articles • ~{{ total_read_time }} min read
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            {% if newsletter_intro %}
+            <div class="intro">{{ newsletter_intro }}</div>
+            {% endif %}
+
+            {% for section_key, section_data in sections.items() %}
+            {% if section_data.articles %}
+            <div class="section">
+                <h2 class="section-title">{{ section_data.title or section_key.replace('_', ' ').title() }}</h2>
+                {% if section_data.description or section_data.intro %}
+                <p class="section-description">{{ section_data.description or section_data.intro }}</p>
+                {% endif %}
+
+                {% for article in section_data.articles %}
+                <div class="article">
+                    {% if article.url %}
+                    <a href="{{ article.source_url }}" class="article-link" target="_blank">Read more</a>
+                    {% endif %}
+
+                    <h3 class="article-title">{{ article.title }}</h3>
+
+                    <div class="article-meta">
+                        {% if article.source %}{{ article.source }}{% endif %}
+                        {% if article.author %} • By {{ article.author }}{% endif %}
+                        {% if article.published_date %} • {{ article.published_date }}{% endif %}
+                        {% if article.read_time %} • {{ article.read_time }} min read{% endif %}
+                    </div>
+
+                    {% if article.summary %}
+                    <p class="article-summary">{{ truncate(article.summary, 150) }}</p>
+                    {% endif %}
+
+                    {% if article.editorial_note %}
+                    <p class="editorial-note">{{ article.editorial_note }}</p>
+                    {% endif %}
+
+                    {% if article.tags %}
+                    <div class="article-tags">
+                        {% for tag in article.tags %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            {% if newsletter_outro %}
+            <div class="outro">{{ newsletter_outro }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Thanks for reading {{ title }}!</p>
+
+            {% if social_links %}
+            <div class="social-links">
+                {% for platform, url in social_links.items() %}
+                <a href="{{ url }}" target="_blank">{{ platform.title() }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="footer-links">
+                {% if forward_url %}
+                <a href="{{ forward_url }}">Forward to a friend</a>
+                {% endif %}
+                {% if manage_preferences_url %}
+                <a href="{{ manage_preferences_url }}">Manage preferences</a>
+                {% endif %}
+                {% if unsubscribe_url %}
+                <a href="{{ unsubscribe_url }}">Unsubscribe</a>
+                {% endif %}
+            </div>
+
+            <p style="margin-top: 20px; font-size: 11px; color: #95a5a6;">
+                © {{ date.split(',')[1].strip() }} {{ newsletter_config.get('company_name', title) }}. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

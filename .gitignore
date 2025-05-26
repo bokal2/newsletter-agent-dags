@@ -1,3 +1,7 @@
-venv/
 .env
-notes.txt
+venv/
+.devcontainer/
+__pycache__/
+.astro/
+outputs/
+src/
