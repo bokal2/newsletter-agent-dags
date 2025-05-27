@@ -14,23 +14,6 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-SUBSCRIBER_SEGMENTS = {
-    "developers": {
-        "interests": [
-            "technical",
-            "tools",
-            "apis",
-            "tutorials",
-            "open_source",
-            "programming",
-            "software architecture",
-        ],
-        "tone": "technical_detailed",
-        "email_list": "developers@company.com",
-        "description": "Software developers and engineers interested in technical implementations and tools",
-    },
-}
-
 NEWSLETTER_CONFIG = {
     "name": "Tech Weekly Digest",
     "theme": "Latest technology news and insights",
@@ -203,7 +186,6 @@ def ai_tech_newsletter():
     def generate_newsletter_content(articles):
         """Generate enhanced newsletter content with AI-written introductions and summaries."""
 
-        # Validate input is a list of articles
         if not isinstance(articles, list):
             raise ValueError("Input must be a list of articles")
 
@@ -404,169 +386,52 @@ def ai_tech_newsletter():
             logger.error(f"Template rendering error: {e}")
             raise
 
-    @task()
-    def send_emails(html_outputs):
-        """Send personalized emails using AWS SES."""
+    @task
+    def send_newsletter_via_ses(html_body: str):
         aws_access_key = Variable.get("AWS_ACCESS_KEY")
         aws_secret_key = Variable.get("AWS_SECRET_KEY")
         aws_region_name = Variable.get("AWS_REGION_NAME")
 
-        ses_client = boto3.client(
-            "ses",
-            region_name=aws_region_name,
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-        )
-
-        send_results = {}
-        current_date = datetime.now().strftime("%B %d, %Y")
-
-        for segment, html in html_outputs.items():
-            recipients = SUBSCRIBER_SEGMENTS[segment]["email_list"].split(",")
-            subject = f"{NEWSLETTER_CONFIG['name']} - {segment.title()} Edition - {current_date}"
-
-            try:
-                response = ses_client.send_email(
-                    Source="newsletter@yourdomain.com",
-                    Destination={"ToAddresses": recipients},
-                    Message={
-                        "Subject": {"Data": subject, "Charset": "UTF-8"},
-                        "Body": {"Html": {"Data": html, "Charset": "UTF-8"}},
-                    },
-                )
-                send_results[segment] = {
-                    "status": "success",
-                    "message_id": response["MessageId"],
-                    "recipients": recipients,
-                }
-                logger.info(f"Email sent to {segment}: {response['MessageId']}")
-            except Exception as e:
-                send_results[segment] = {
-                    "status": "error",
-                    "error": str(e),
-                    "recipients": recipients,
-                }
-                logger.error(f"Error sending to {segment}: {e}")
-
-        return send_results
-
-    @task
-    def display_html(html_page: dict):
-        """Render and save the developer HTML newsletter using Jinja2."""
-        if "developers" not in html_page:
-            raise ValueError("Missing 'developers' key in html_page JSON input.")
+        recipients = Variable.get("SUBSCRIBERS").split(",")
+        source_email = Variable.get("SOURCE_EMAIL")
 
         try:
-            output_template = env.get_template("rendered.html")
-            html_output = output_template.render(html_content=html_page["developers"])
+            ses_client = boto3.client(
+                "ses",
+                region_name=aws_region_name,
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_key,
+            )
 
-            logger.info("HTML page successfully saved to output.html")
+            current_date = datetime.now().strftime("%B %d, %Y")
+            subject = f"{NEWSLETTER_CONFIG['name']} - {current_date}"
 
-            return html_output
+            response = ses_client.send_email(
+                Source=source_email,
+                Destination={"ToAddresses": recipients},
+                Message={
+                    "Subject": {"Data": subject},
+                    "Body": {"Html": {"Data": html_body, "Charset": "UTF-8"}},
+                },
+            )
+
+            return {
+                "status": "success",
+                "message_id": response["MessageId"],
+                "recipients": recipients,
+            }
 
         except Exception as e:
-            logger.error(f"Failed to render or save HTML page: {e}")
+            logger.error(f"Error sending emails: {e}")
             raise
 
-    GENERATED_CONTENT = {
-        "newsletter_intro": "Welcome to this week's edition of Tech Weekly Digest, where we bring you the latest and most intriguing developments in the tech world. From groundbreaking AI advancements to must-have gadgets on sale, we've got you covered. Dive in to explore the stories shaping the future of technology.",
-        "sections": {
-            "top_stories": {
-                "intro": "This week, we're spotlighting major developments that are set to redefine industries and capture the public's imagination.",
-                "articles": [
-                    {
-                        "title": "Nick Clegg says asking artists for use permission would ‘kill’ the AI industry",
-                        "enhanced_summary": "Nick Clegg, former UK deputy prime minister, has sparked controversy by claiming that requiring artist consent for AI training would devastate the industry. As the UK debates AI regulation, Clegg argues that such measures are impractical and could stifle innovation.",
-                        "link": "https://www.theverge.com/news/674366/nick-clegg-uk-ai-artists-policy-letter",
-                        "source": "The Verge",
-                        "author": "Mia Sato",
-                        "editorial_note": "This debate highlights the tension between technological advancement and creative rights.",
-                    },
-                    {
-                        "title": "Acurast raises $5.4M for global decentralized cloud using smartphones",
-                        "enhanced_summary": "Acurast is revolutionizing cloud computing by leveraging smartphones to create a decentralized network. With a fresh $5.4 million in funding, the company aims to democratize cloud access and enhance global connectivity.",
-                        "link": "https://venturebeat.com/business/acurast-raises-5-4m-for-global-decentralized-cloud-using-smartphones/",
-                        "source": "VentureBeat",
-                        "author": "Dean Takahashi",
-                        "editorial_note": "This innovation could significantly lower the barrier to entry for cloud services worldwide.",
-                    },
-                ],
-            },
-            "deep_dive": {
-                "intro": "For those looking to delve deeper into complex topics, these articles provide detailed insights and analyses.",
-                "articles": [
-                    {
-                        "title": "How Manus AI is Redefining Autonomous Workflow Automation Across Industries",
-                        "enhanced_summary": "Manus AI is pushing the boundaries of autonomous workflow automation, promising to transform industries from finance to healthcare. With its ability to autonomously manage complex tasks, Manus AI is a game-changer in the AI landscape, though it faces challenges in stability and security.",
-                        "link": "https://www.unite.ai/how-manus-ai-is-redefining-autonomous-workflow-automation-across-industries/",
-                        "source": "Unite.AI",
-                        "author": "Dr. Assad Abbas",
-                        "editorial_note": "Understanding Manus AI's potential and limitations is crucial for businesses looking to integrate advanced AI solutions.",
-                    },
-                    {
-                        "title": "Google’s ‘world-model’ bet: building the AI operating layer before Microsoft captures the UI",
-                        "enhanced_summary": "Google is racing to establish its 'world-model' AI operating layer with Gemini, aiming to create a universal personal assistant. This strategic move comes as Microsoft seeks to dominate the enterprise UI, setting the stage for a major tech showdown.",
-                        "link": "https://venturebeat.com/ai/googles-world-model-bet-building-the-ai-operating-layer-before-microsoft-captures-the-ui/",
-                        "source": "VentureBeat",
-                        "author": "Matt Marshall",
-                        "editorial_note": "The outcome of this race could redefine the future of AI-driven personal and enterprise solutions.",
-                    },
-                ],
-            },
-            "quick_hits": {
-                "intro": "Catch up on these rapid-fire updates from the tech world.",
-                "articles": [
-                    {
-                        "title": "The Last of Us opens up a whole new perspective for its next season",
-                        "enhanced_summary": "The finale of The Last of Us Season 2 sets the stage for a dramatic shift in narrative perspective, echoing the game's storytelling evolution.",
-                        "link": "https://www.theverge.com/hbo/673868/the-last-of-us-season-2-finale-hbo",
-                        "source": "The Verge",
-                        "author": "Andrew Webster",
-                    },
-                    {
-                        "title": "How I shorted $TRUMP coin (and got to have dinner with the President)",
-                        "enhanced_summary": "A savvy crypto trader reveals how they outsmarted a contest involving the $TRUMP meme coin to win a dinner with Donald Trump, highlighting the volatile nature of meme coins.",
-                        "link": "https://www.theverge.com/cryptocurrency/674327/trump-coin-short-sell-hedge-contest-dinner-winner",
-                        "source": "The Verge",
-                        "author": "Tina Nguyen",
-                    },
-                ],
-            },
-            "tools_resources": {
-                "intro": "Explore these tools and resources to enhance your tech toolkit.",
-                "articles": [
-                    {
-                        "title": "The best Memorial Day sales happening now",
-                        "enhanced_summary": "This Memorial Day, tech enthusiasts can snag incredible deals on gadgets like the iPad Mini, LG OLED TVs, and more. Whether you're upgrading your tech or buying gifts, these sales offer something for everyone.",
-                        "link": "https://www.theverge.com/tech/670092/best-memorial-day-sales-2025",
-                        "source": "The Verge",
-                        "author": "Cameron Faulkner",
-                        "editorial_note": "Don't miss out on these limited-time offers to upgrade your tech arsenal.",
-                    },
-                    {
-                        "title": "How to scan documents using your iPhone",
-                        "enhanced_summary": "Transform your iPhone into a powerful document scanner with built-in apps like Notes and Files, or explore third-party options for more features. Say goodbye to clutter and hello to digital efficiency.",
-                        "link": "https://www.theverge.com/how-to/673060/how-to-scan-documents-using-your-iphone",
-                        "source": "The Verge",
-                        "author": "David Nield",
-                        "editorial_note": "A must-read for anyone looking to digitize their paperwork effortlessly.",
-                    },
-                ],
-            },
-        },
-        "newsletter_outro": "Thank you for joining us in this week's exploration of the tech landscape. Stay tuned for next week's edition, where we'll continue to bring you the latest innovations and insights. Don't forget to share your thoughts and feedback with us!",
-    }
-
     # Define the task flow
-    # articles = fetch_rss_articles()
-    # store_raw_feeds_to_db(articles)
-    # newsletter_content = generate_newsletter_content(articles)
-    html_outputs = render_html(GENERATED_CONTENT)
-    # email_results = send_emails(html_outputs)
-
-    # html_outputs = display_html(html_page=SAMPLE_HTML_OUTPUT)
-
-    # return html_outputs
+    articles = fetch_rss_articles()
+    store_raw_feeds_to_db(all_articles=articles)
+    newsletter_content = generate_newsletter_content(articles=articles)
+    store_generated_newsletter(newsletter_content=newsletter_content)
+    html_outputs = render_html(generated_newsletter_content=newsletter_content)
+    send_newsletter_via_ses(html_body=html_outputs)
 
     return html_outputs
 
